@@ -117,7 +117,7 @@ export default function Index() {
                     </Alert>
                   )}
 
-                  {botInfo && (
+                  {botInfo && !webhookSetupDone && (
                     <Alert className="border-primary bg-primary/5">
                       <Icon name="CheckCircle2" size={16} className="text-primary" />
                       <AlertDescription className="text-primary">
