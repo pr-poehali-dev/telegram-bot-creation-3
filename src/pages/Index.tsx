@@ -18,6 +18,8 @@ export default function Index() {
   const [isLoading, setIsLoading] = useState(false);
   const [botInfo, setBotInfo] = useState<BotInfo | null>(null);
   const [error, setError] = useState('');
+  const [webhookUrl, setWebhookUrl] = useState('https://functions.poehali.dev/87fade88-5166-41ab-af98-b68f978b76a8');
+  const [webhookSetupDone, setWebhookSetupDone] = useState(false);
   const { toast } = useToast();
 
   const handleTokenSubmit = async (e: React.FormEvent) => {
@@ -38,7 +40,7 @@ export default function Index() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ token: apiToken }),
+        body: JSON.stringify({ token: apiToken, webhook_url: webhookUrl }),
       });
 
       const data = await response.json();
@@ -48,9 +50,10 @@ export default function Index() {
       }
 
       setBotInfo(data.bot);
+      setWebhookSetupDone(true);
       toast({
         title: 'Успешно!',
-        description: `Бот ${data.bot.first_name} подключен`,
+        description: `Бот ${data.bot.first_name} подключен и готов к работе!`,
       });
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Неизвестная ошибка';
@@ -145,23 +148,85 @@ export default function Index() {
               </CardContent>
             </Card>
 
-            <Card className="border-2 shadow-xl animate-scale-in">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Icon name="ListOrdered" size={24} className="text-secondary" />
-                  Команды бота
-                </CardTitle>
-                <CardDescription>
-                  Настройте команды для вашего бота
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="text-center py-12 text-muted-foreground">
-                  <Icon name="Package" size={48} className="mx-auto mb-4 opacity-50" />
-                  <p className="text-lg">Подключите бота, чтобы настроить команды</p>
-                </div>
-              </CardContent>
-            </Card>
+            {botInfo && webhookSetupDone && (
+              <Card className="border-2 shadow-xl animate-scale-in border-green-500">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Icon name="CheckCircle2" size={24} className="text-green-600" />
+                    Бот активирован
+                  </CardTitle>
+                  <CardDescription>
+                    Ваш бот @{botInfo.username} готов к работе в Telegram чатах
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <Alert className="bg-blue-50 border-blue-200">
+                    <Icon name="Info" size={16} className="text-blue-600" />
+                    <AlertDescription className="text-blue-900">
+                      <strong>Как использовать:</strong> Добавьте бота в любой Telegram чат и используйте команды.
+                      Напишите <code className="bg-blue-100 px-2 py-1 rounded">/commands</code> чтобы увидеть все доступные команды.
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-6 rounded-lg border">
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <Icon name="Crown" size={20} className="text-yellow-600" />
+                      Ваши полномочия
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <p>✅ <strong>@Mad_SVO</strong> — Основатель (все права)</p>
+                      <p>✅ <strong>@Andrian_SVO</strong> — Зам. Основателя</p>
+                      <p className="text-muted-foreground mt-3">Используйте команды для управления ботом, назначения администраторов и модерации чатов.</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid md:grid-cols-2 gap-4 pt-2">
+                    <div className="bg-white p-4 rounded-lg border">
+                      <h5 className="font-semibold mb-2 flex items-center gap-2">
+                        <Icon name="Users" size={18} className="text-primary" />
+                        Управление
+                      </h5>
+                      <ul className="text-sm space-y-1 text-muted-foreground">
+                        <li>• Назначение рангов</li>
+                        <li>• Управление чатами</li>
+                        <li>• Список сотрудников</li>
+                      </ul>
+                    </div>
+                    <div className="bg-white p-4 rounded-lg border">
+                      <h5 className="font-semibold mb-2 flex items-center gap-2">
+                        <Icon name="Shield" size={18} className="text-secondary" />
+                        Модерация
+                      </h5>
+                      <ul className="text-sm space-y-1 text-muted-foreground">
+                        <li>• Баны и муты</li>
+                        <li>• Админка в чатах</li>
+                        <li>• Глобальные баны</li>
+                      </ul>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            
+            {!botInfo && (
+              <Card className="border-2 shadow-xl animate-scale-in">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Icon name="ListOrdered" size={24} className="text-secondary" />
+                    Команды бота
+                  </CardTitle>
+                  <CardDescription>
+                    Настройте команды для вашего бота
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Icon name="Package" size={48} className="mx-auto mb-4 opacity-50" />
+                    <p className="text-lg">Подключите бота, чтобы увидеть информацию</p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
 
           <div className="mt-8 grid md:grid-cols-3 gap-4">

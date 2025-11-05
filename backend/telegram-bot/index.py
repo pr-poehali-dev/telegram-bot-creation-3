@@ -1,12 +1,14 @@
 import json
+import os
 from typing import Dict, Any
 import urllib.request
 import urllib.error
+import psycopg2
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     '''
-    Business: Verify Telegram bot token and get bot info
-    Args: event - dict with httpMethod, body (contains token)
+    Business: Verify Telegram bot token, save it to DB, and set webhook
+    Args: event - dict with httpMethod, body (contains token and webhook_url)
           context - object with request_id, function_name
     Returns: HTTP response with bot information or error
     '''
@@ -73,6 +75,34 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 }
             
             bot_info = result.get('result', {})
+            bot_id = bot_info.get('id')
+            bot_username = bot_info.get('username')
+            bot_first_name = bot_info.get('first_name')
+            
+            dsn = os.environ.get('DATABASE_URL')
+            conn = psycopg2.connect(dsn)
+            try:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "INSERT INTO bot_tokens (bot_token, bot_id, bot_username, bot_first_name) VALUES (%s, %s, %s, %s) ON CONFLICT DO NOTHING",
+                        (token, bot_id, bot_username, bot_first_name)
+                    )
+                    cur.execute("UPDATE bot_tokens SET is_active = FALSE WHERE bot_token != %s", (token,))
+                    cur.execute("UPDATE bot_tokens SET is_active = TRUE WHERE bot_token = %s", (token,))
+                    conn.commit()
+            finally:
+                conn.close()
+            
+            webhook_url = body_data.get('webhook_url', '')
+            if webhook_url:
+                webhook_api_url = f'https://api.telegram.org/bot{token}/setWebhook'
+                webhook_data = json.dumps({'url': webhook_url}).encode('utf-8')
+                webhook_req = urllib.request.Request(webhook_api_url, data=webhook_data, headers={'Content-Type': 'application/json'})
+                try:
+                    with urllib.request.urlopen(webhook_req, timeout=10) as webhook_response:
+                        webhook_result = json.loads(webhook_response.read().decode('utf-8'))
+                except Exception:
+                    pass
             
             return {
                 'statusCode': 200,
@@ -82,9 +112,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 },
                 'body': json.dumps({
                     'bot': {
-                        'id': bot_info.get('id'),
-                        'first_name': bot_info.get('first_name'),
-                        'username': bot_info.get('username')
+                        'id': bot_id,
+                        'first_name': bot_first_name,
+                        'username': bot_username
                     }
                 }),
                 'isBase64Encoded': False

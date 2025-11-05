@@ -1,0 +1,38 @@
+{
+  "tests": [
+    {
+      "name": "Test OPTIONS request for CORS",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": "",
+      "bodyMatcher": "exact"
+    },
+    {
+      "name": "Test webhook with commands message",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "message": {
+          "message_id": 1,
+          "from": {
+            "id": 123456789,
+            "username": "testuser",
+            "first_name": "Test"
+          },
+          "chat": {
+            "id": -1001234567890,
+            "title": "Test Chat",
+            "type": "supergroup"
+          },
+          "text": "/commands"
+        }
+      },
+      "expectedStatus": 200,
+      "expectedBody": {
+        "ok": true
+      },
+      "bodyMatcher": "partial"
+    }
+  ]
+}
