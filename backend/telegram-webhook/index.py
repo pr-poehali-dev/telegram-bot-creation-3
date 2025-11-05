@@ -307,21 +307,25 @@ ID: {from_user_id}
         if premium:
             return f"⭐ У вас есть Premium подписка до {premium.strftime('%d.%m.%Y %H:%M')}"
         
+        balance = get_user_balance(from_user_id, from_username)
+        
         keyboard = {
             'inline_keyboard': [
-                [{'text': '3 дня (100 💎)', 'callback_data': 'premium_3'}],
-                [{'text': '7 дней (250 💎)', 'callback_data': 'premium_7'}],
-                [{'text': '30 дней (1000 💎)', 'callback_data': 'premium_30'}]
+                [{'text': '⭐ 3 дня - 100 💎', 'callback_data': 'premium_3'}],
+                [{'text': '✨ 7 дней - 250 💎', 'callback_data': 'premium_7'}],
+                [{'text': '🌟 30 дней - 1000 💎', 'callback_data': 'premium_30'}]
             ]
         }
         
         send_telegram_message(
             bot_token,
             chat_id,
-            """<b>⭐ Premium подписка</b>
+            f"""<b>⭐ Premium подписка</b>
 
 С Premium вы можете:
 • Писать сообщения от лица бота (/pmessage)
+
+💎 Ваш баланс: <b>{balance}</b> брюликов
 
 Выберите подписку:""",
             reply_markup=keyboard
