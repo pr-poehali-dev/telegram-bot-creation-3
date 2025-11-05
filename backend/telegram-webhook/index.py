@@ -522,7 +522,12 @@ ID: {target_user_id or 'Не указан'}
                     )
                     conn.commit()
             
-            return f"✅ Пользователь @{target_username} забанен навсегда"
+            send_telegram_message(
+                bot_token,
+                chat_id,
+                f"🚫 <b>Пользователь забанен навсегда</b>\n\n👤 @{target_username}"
+            )
+            return None
     
     # Команды для Администратора 5 уровня
     if admin_level and admin_level >= 5:
@@ -552,7 +557,12 @@ ID: {target_user_id or 'Не указан'}
                     )
                     conn.commit()
             
-            return f"✅ Пользователь @{target_username} разбанен"
+            send_telegram_message(
+                bot_token,
+                chat_id,
+                f"✅ <b>Пользователь разбанен</b>\n\n👤 @{target_username}"
+            )
+            return None
         
         if command == '/tban' and len(args) >= 3:
             target_username = args[0].replace('@', '')
@@ -575,7 +585,12 @@ ID: {target_user_id or 'Не указан'}
                         )
                         conn.commit()
                 
-                return f"✅ Пользователь @{target_username} забанен на {minutes} минут. Причина: {reason}"
+                send_telegram_message(
+                    bot_token,
+                    chat_id,
+                    f"🚫 <b>Пользователь забанен</b>\n\n👤 @{target_username}\n⏱ Срок: {minutes} минут\n📝 Причина: {reason}"
+                )
+                return None
             except ValueError:
                 return "❌ Неверное время бана"
     
@@ -601,7 +616,12 @@ ID: {target_user_id or 'Не указан'}
                         )
                         conn.commit()
                 
-                return f"✅ Пользователь @{target_username} замучен на {minutes} минут"
+                send_telegram_message(
+                    bot_token,
+                    chat_id,
+                    f"🔇 <b>Пользователь замучен</b>\n\n👤 @{target_username}\n⏱ Срок: {minutes} минут"
+                )
+                return None
             except ValueError:
                 return "❌ Неверное время мута"
         
@@ -622,7 +642,12 @@ ID: {target_user_id or 'Не указан'}
                     )
                     conn.commit()
             
-            return f"✅ Пользователь @{target_username} размучен"
+            send_telegram_message(
+                bot_token,
+                chat_id,
+                f"🔊 <b>Пользователь размучен</b>\n\n👤 @{target_username}"
+            )
+            return None
     
     # Команды для Администратора 1 уровня
     if admin_level and admin_level >= 1:
