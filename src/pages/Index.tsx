@@ -20,6 +20,7 @@ export default function Index() {
   const [error, setError] = useState('');
   const [webhookUrl, setWebhookUrl] = useState('https://functions.poehali.dev/87fade88-5166-41ab-af98-b68f978b76a8');
   const [webhookSetupDone, setWebhookSetupDone] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const { toast } = useToast();
 
   const handleTokenSubmit = async (e: React.FormEvent) => {
@@ -51,6 +52,10 @@ export default function Index() {
 
       setBotInfo(data.bot);
       setWebhookSetupDone(true);
+      
+      // Сохраняем токен в localStorage
+      localStorage.setItem('telegram_bot_token', apiToken);
+      
       toast({
         title: 'Успешно!',
         description: `Бот ${data.bot.first_name} подключен и готов к работе!`,
@@ -148,7 +153,7 @@ export default function Index() {
               </CardContent>
             </Card>
 
-            {botInfo && webhookSetupDone && (
+            {botInfo && (
               <Card className="border-2 shadow-xl animate-scale-in border-green-500">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -203,6 +208,85 @@ export default function Index() {
                         <li>• Глобальные баны</li>
                       </ul>
                     </div>
+                  </div>
+                  
+                  <div className="flex gap-3 pt-2">
+                    <Button
+                      onClick={async () => {
+                        const savedToken = localStorage.getItem('telegram_bot_token');
+                        if (!savedToken) {
+                          toast({
+                            title: 'Ошибка',
+                            description: 'Токен не найден. Введите токен заново.',
+                            variant: 'destructive'
+                          });
+                          return;
+                        }
+                        
+                        setIsReconnecting(true);
+                        try {
+                          const response = await fetch('https://functions.poehali.dev/a32a9e48-7851-4521-a5bc-b4d5eb28b8c3', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ token: savedToken, webhook_url: webhookUrl }),
+                          });
+                          
+                          const data = await response.json();
+                          
+                          if (!response.ok) {
+                            throw new Error(data.error || 'Ошибка переподключения');
+                          }
+                          
+                          setBotInfo(data.bot);
+                          setWebhookSetupDone(true);
+                          toast({
+                            title: 'Готово!',
+                            description: 'Бот успешно переподключен',
+                          });
+                        } catch (err) {
+                          toast({
+                            title: 'Ошибка переподключения',
+                            description: err instanceof Error ? err.message : 'Неизвестная ошибка',
+                            variant: 'destructive'
+                          });
+                        } finally {
+                          setIsReconnecting(false);
+                        }
+                      }}
+                      variant="outline"
+                      disabled={isReconnecting}
+                      className="flex-1"
+                    >
+                      {isReconnecting ? (
+                        <>
+                          <Icon name="Loader2" size={18} className="mr-2 animate-spin" />
+                          Переподключение...
+                        </>
+                      ) : (
+                        <>
+                          <Icon name="RefreshCw" size={18} className="mr-2" />
+                          Переподключить бота
+                        </>
+                      )}
+                    </Button>
+                    
+                    <Button
+                      onClick={() => {
+                        localStorage.removeItem('telegram_bot_token');
+                        setBotInfo(null);
+                        setWebhookSetupDone(false);
+                        setApiToken('');
+                        toast({
+                          title: 'Готово',
+                          description: 'Бот отключен',
+                        });
+                      }}
+                      variant="destructive"
+                      className="flex-1"
+                    >
+                      <Icon name="Trash2" size={18} className="mr-2" />
+                      Отключить бота
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
