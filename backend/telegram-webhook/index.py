@@ -220,6 +220,29 @@ def get_user_id_by_username(username: str) -> Optional[int]:
             result = cur.fetchone()
             return result['user_id'] if result else None
 
+def get_target_user_from_message(message: Dict[str, Any], args: List[str]) -> Optional[tuple]:
+    """Получить user_id и username цели из reply или mention"""
+    # Проверяем reply_to_message
+    if 'reply_to_message' in message:
+        reply_user = message['reply_to_message']['from']
+        return (reply_user['id'], reply_user.get('username', ''))
+    
+    # Проверяем entities для mention
+    if 'entities' in message and args:
+        target_username = args[0].replace('@', '')
+        for entity in message['entities']:
+            if entity['type'] == 'mention' or entity['type'] == 'text_mention':
+                if entity.get('user'):
+                    user = entity['user']
+                    return (user['id'], user.get('username', ''))
+        
+        # Пытаемся найти в базе
+        user_id = get_user_id_by_username(target_username)
+        if user_id:
+            return (user_id, target_username)
+    
+    return None
+
 def handle_command(message: Dict[str, Any], bot_token: str) -> Optional[str]:
     text = message.get('text', '')
     chat_id = message['chat']['id']
@@ -505,12 +528,13 @@ ID: {target_user_id or 'Не указан'}
     
     # Команды модерации - /gban для владельца
     if is_owner:
-        if command == '/gban' and len(args) >= 1:
-            target_username = args[0].replace('@', '')
-            target_user_id = get_user_id_by_username(target_username)
+        if command == '/gban':
+            target_info = get_target_user_from_message(message, args)
             
-            if not target_user_id:
-                return f"❌ Пользователь @{target_username} не найден"
+            if not target_info:
+                return "❌ Ответьте на сообщение пользователя или укажите @юзернейм"
+            
+            target_user_id, target_username = target_info
             
             ban_chat_member(bot_token, chat_id, target_user_id)
             
@@ -540,12 +564,13 @@ ID: {target_user_id or 'Не указан'}
     
     # Команды для Администратора 4 уровня
     if admin_level and admin_level >= 4:
-        if command == '/unban' and len(args) >= 1:
-            target_username = args[0].replace('@', '')
-            target_user_id = get_user_id_by_username(target_username)
+        if command == '/unban':
+            target_info = get_target_user_from_message(message, args)
             
-            if not target_user_id:
-                return f"❌ Пользователь @{target_username} не найден"
+            if not target_info:
+                return "❌ Ответьте на сообщение пользователя или укажите @юзернейм"
+            
+            target_user_id, target_username = target_info
             
             unban_chat_member(bot_token, chat_id, target_user_id)
             
@@ -564,15 +589,20 @@ ID: {target_user_id or 'Не указан'}
             )
             return None
         
-        if command == '/tban' and len(args) >= 3:
-            target_username = args[0].replace('@', '')
-            reason = args[1]
+        if command == '/tban':
+            target_info = get_target_user_from_message(message, args)
+            
+            if not target_info:
+                return "❌ Ответьте на сообщение пользователя или укажите @юзернейм"
+            
+            target_user_id, target_username = target_info
+            
+            if len(args) < 2:
+                return "❌ Использование: /tban [@юзернейм] [причина] [минуты] или ответьте на сообщение"
+            
+            reason = args[0] if 'reply_to_message' in message else args[1]
             try:
-                minutes = int(args[2])
-                target_user_id = get_user_id_by_username(target_username)
-                
-                if not target_user_id:
-                    return f"❌ Пользователь @{target_username} не найден"
+                minutes = int(args[1] if 'reply_to_message' in message else args[2])
                 
                 until_timestamp = int((datetime.now() + timedelta(minutes=minutes)).timestamp())
                 ban_chat_member(bot_token, chat_id, target_user_id, until_timestamp)
@@ -596,14 +626,16 @@ ID: {target_user_id or 'Не указан'}
     
     # Команды для Администратора 2 уровня
     if admin_level and admin_level >= 2:
-        if command == '/mute' and len(args) >= 2:
-            target_username = args[0].replace('@', '')
+        if command == '/mute':
+            target_info = get_target_user_from_message(message, args)
+            
+            if not target_info:
+                return "❌ Ответьте на сообщение пользователя или укажите @юзернейм"
+            
+            target_user_id, target_username = target_info
+            
             try:
-                minutes = int(args[1])
-                target_user_id = get_user_id_by_username(target_username)
-                
-                if not target_user_id:
-                    return f"❌ Пользователь @{target_username} не найден"
+                minutes = int(args[0] if 'reply_to_message' in message else args[1])
                 
                 until_timestamp = int((datetime.now() + timedelta(minutes=minutes)).timestamp())
                 restrict_chat_member(bot_token, chat_id, target_user_id, until_timestamp)
@@ -625,12 +657,13 @@ ID: {target_user_id or 'Не указан'}
             except ValueError:
                 return "❌ Неверное время мута"
         
-        if command == '/unmute' and len(args) >= 1:
-            target_username = args[0].replace('@', '')
-            target_user_id = get_user_id_by_username(target_username)
+        if command == '/unmute':
+            target_info = get_target_user_from_message(message, args)
             
-            if not target_user_id:
-                return f"❌ Пользователь @{target_username} не найден"
+            if not target_info:
+                return "❌ Ответьте на сообщение пользователя или укажите @юзернейм"
+            
+            target_user_id, target_username = target_info
             
             unrestrict_chat_member(bot_token, chat_id, target_user_id)
             
